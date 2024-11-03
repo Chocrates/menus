@@ -2,7 +2,8 @@ use bevy::prelude::*;
 
 pub struct StatesPlugin;
 
-mod states::Splash;
+mod states;
+use states::splash::Splash;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum GameState {
