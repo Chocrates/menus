@@ -10,6 +10,6 @@ fn main() {
 }
 
 fn startup(mut commands: Commands) {
-    println!("In main::startup");
+    bevy::log::info!("main::startup");
     commands.spawn(Camera2dBundle::default());
 }

@@ -2,20 +2,20 @@ use bevy::prelude::*;
 
 pub struct StatesPlugin;
 
-use super::states::splash::Splash;
-
+use super::states::timer::TimerPlugin;
+use super::states::splash::SplashPlugin;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum GameState {
     #[default]
     Splash,
-    Menu,
+    Timer,
 }
 
 impl Plugin for StatesPlugin {
     fn build(&self, app: &mut App) {
-        app.init_state::<GameState>();
-        println!("State is initialized")
+        app.init_state::<GameState>()
+            .add_plugins((SplashPlugin, TimerPlugin));
     }
 }
 
