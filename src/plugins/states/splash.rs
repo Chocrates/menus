@@ -1,4 +1,4 @@
-use crate::plugins::states_plugin::GameState;
+use crate::plugins::states_plugin::{despawn_screen, GameState};
 use bevy::prelude::*;
 
 pub struct SplashPlugin;
@@ -17,7 +17,7 @@ impl Plugin for SplashPlugin {
 
 // Component to identify splash screen entities
 #[derive(Component)]
-struct Splash;
+pub struct Splash;
 
 // Tag component used to tag entities added on the splash screen
 #[derive(Component)]
@@ -69,24 +69,3 @@ fn countdown(
         game_state.set(GameState::Menu);
     }
 }
-
-
-
-
-
-
-
-,
-
-,
-                
-            
-   
-,
-                
-            
-   
-,
-                
-            
-    
