@@ -6,11 +6,8 @@ pub struct SplashPlugin;
 impl Plugin for SplashPlugin {
     fn build(&self, app: &mut App) {
         app
-            // When entering the state, spawn everything needed for this screen
             .add_systems(OnEnter(GameState::Splash), splash_setup)
-            // While in this state, run the `countdown` system
             .add_systems(Update, countdown.run_if(in_state(GameState::Splash)))
-            // When exiting the state, despawn everything that was spawned for this screen
             .add_systems(OnExit(GameState::Splash), despawn_screen::<OnSplashScreen>);
     }
 }
@@ -28,7 +25,7 @@ struct OnSplashScreen;
 struct SplashTimer(Timer);
 
 fn splash_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    println!("Inside splash state");
+   bevy::log::info!("Inside splash state");
     let icon = asset_server.load("branding/icon.png");
     // Display the logo
     commands
@@ -67,6 +64,6 @@ fn countdown(
     mut timer: ResMut<SplashTimer>,
 ) {
     if timer.tick(time.delta()).finished() {
-        game_state.set(GameState::Timer);
+        game_state.set(GameState::Menu);
     }
 }
