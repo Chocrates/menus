@@ -227,6 +227,7 @@ struct ComputeTransform(Task<CommandQueue>);
 /// frames/ticks, and use the results to spawn cubes
 fn spawn_tasks(mut commands: Commands) {
     let thread_pool = AsyncComputeTaskPool::get();
+    bevy::log::info!("plugins::states::menu::spawn_tasks: NUM_CUBES: {NUM_CUBES}");
     for x in 0..NUM_CUBES {
         for y in 0..NUM_CUBES {
             for z in 0..NUM_CUBES {
@@ -289,6 +290,7 @@ fn handle_tasks(mut commands: Commands, mut transform_tasks: Query<&mut ComputeT
     for mut task in &mut transform_tasks {
         if let Some(mut commands_queue) = block_on(future::poll_once(&mut task.0)) {
             // append the returned command queue to have it execute later
+            bevy::log:: info!("Spawning cubes");
             commands.append(&mut commands_queue);
         }
     }
@@ -296,6 +298,7 @@ fn handle_tasks(mut commands: Commands, mut transform_tasks: Query<&mut ComputeT
 
 /// This system is only used to setup light and camera for the environment
 fn setup_env(mut commands: Commands) {
+    bevy::log::info!("plugins::states::menu::setup_env");
     // Used to center camera on spawned cubes
     let offset = if NUM_CUBES % 2 == 0 {
         (NUM_CUBES / 2) as f32 - 0.5
@@ -313,6 +316,10 @@ fn setup_env(mut commands: Commands) {
     commands.spawn(Camera3dBundle {
         transform: Transform::from_xyz(offset, offset, 15.0)
             .looking_at(Vec3::new(offset, offset, 0.0), Vec3::Y),
+        camera: Camera {
+            order: 1,
+            ..default()
+        },
         ..default()
     });
 }
