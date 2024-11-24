@@ -184,19 +184,19 @@ fn menu_update_system(
                 text.sections[0].value = "Press".to_string();
                 *color = PRESSED_BUTTON.into();
                 border_color.0 = Color::srgb(1.0, 0.0, 0.0);
-                bevy::log::info!("OH MY GOD I  AM PRESSED");
+                bevy::log::info!("Button PRESSED");
             }
             Interaction::Hovered => {
                 text.sections[0].value = "Hover".to_string();
                 *color = HOVERED_BUTTON.into();
                 border_color.0 = Color::WHITE;
-                bevy::log::info!("OH MY GOD I  AM Hovered");
+                bevy::log::info!("Button Hovered");
             }
             Interaction::None => {
                 text.sections[0].value = "Button".to_string();
                 *color = NORMAL_BUTTON.into();
                 border_color.0 = Color::BLACK;
-                bevy::log::info!("OH MY GOD I  AM Out");
+                bevy::log::info!("Button Out");
             }
         }
     }
