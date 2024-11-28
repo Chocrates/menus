@@ -6,6 +6,7 @@ use std::sync::Mutex;
 
 use bevy::{
     ecs::{system::SystemState, world::CommandQueue},
+    render::view::RenderLayers,
     tasks::{block_on, futures_lite::future, AsyncComputeTaskPool, Task},
 };
 
@@ -20,6 +21,12 @@ pub struct Menu;
 // Tag component used to tag entities added on the splash screen
 #[derive(Component)]
 struct OnMenuScreen;
+
+#[derive(Component)]
+struct UICamera;
+
+#[derive(Component)]
+struct GameCamera;
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
@@ -83,6 +90,7 @@ fn menu_setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn((
             NodeBundle {
+                // z_index: ZIndex::Global(-1),
                 style: Style {
                     width: Val::Percent(100.0),
                     height: Val::Percent(100.0),
@@ -94,6 +102,7 @@ fn menu_setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
                 },
                 ..default()
             },
+            RenderLayers::layer(0),
             OnMenuScreen,
         ))
         .with_children(|parent| {
@@ -242,7 +251,7 @@ fn spawn_tasks(mut commands: Commands) {
                     async_std::task::sleep(duration).await;
 
                     // Such hard work, all done!
-                    let transform = Transform::from_xyz(x as f32, y as f32, z as f32);
+                    let transform = Transform::from_xyz(x as f32, y as f32, z as f32 + 1.0);
                     let mut command_queue = CommandQueue::default();
 
                     // we use a raw command queue to pass a FnOne(&mut World) back to be
@@ -262,12 +271,15 @@ fn spawn_tasks(mut commands: Commands) {
                         world
                             .entity_mut(entity)
                             // Add our new PbrBundle of components to our tagged entity
-                            .insert(PbrBundle {
-                                mesh: box_mesh_handle,
-                                material: box_material_handle,
-                                transform,
-                                ..default()
-                            })
+                            .insert((
+                                PbrBundle {
+                                    mesh: box_mesh_handle,
+                                    material: box_material_handle,
+                                    transform,
+                                    ..default()
+                                },
+                                RenderLayers::layer(1),
+                            ))
                             // Task is complete, so remove task component from entity
                             .remove::<ComputeTransform>();
                     });
@@ -290,7 +302,6 @@ fn handle_tasks(mut commands: Commands, mut transform_tasks: Query<&mut ComputeT
     for mut task in &mut transform_tasks {
         if let Some(mut commands_queue) = block_on(future::poll_once(&mut task.0)) {
             // append the returned command queue to have it execute later
-            bevy::log:: info!("Spawning cubes");
             commands.append(&mut commands_queue);
         }
     }
@@ -313,13 +324,33 @@ fn setup_env(mut commands: Commands) {
     });
 
     // camera
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(offset, offset, 15.0)
-            .looking_at(Vec3::new(offset, offset, 0.0), Vec3::Y),
-        camera: Camera {
-            order: 1,
+    commands.spawn((
+        Camera2dBundle {
+            // transform: Transform::from_xzy(0.0 as f32, 0.0 as f32, 16.0 as f32)
+            //     .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
+            transform: Transform::from_xyz(0.0, 0.0, 16.0)
+                .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
+            camera: Camera {
+                order: 1,
+                ..default()
+            },
             ..default()
         },
-        ..default()
-    });
+        RenderLayers::layer(0),
+        UICamera,
+    ));
+
+    commands.spawn((
+        Camera3dBundle {
+            transform: Transform::from_xyz(offset, offset, 15.0)
+                .looking_at(Vec3::new(offset, offset, 0.0), Vec3::Y),
+            camera: Camera {
+                order: 2,
+                ..default()
+            },
+            ..default()
+        },
+        RenderLayers::layer(1),
+        GameCamera,
+    ));
 }
