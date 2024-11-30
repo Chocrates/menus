@@ -72,7 +72,7 @@ fn menu_setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
                 justify_content: JustifyContent::FlexStart,
                 ..default()
             },
-            RenderLayers::layer(0),
+            RenderLayers::layer(1),
             OnMenuScreen,
         ))
         .with_children(|parent| {
@@ -240,6 +240,7 @@ fn spawn_tasks(mut commands: Commands) {
                                 Mesh3d(box_mesh_handle),
                                 MeshMaterial3d(box_material_handle),
                                 transform,
+                                RenderLayers::layer(2),
                             ))
                             // Task is complete, so remove task component from entity
                             .remove::<ComputeTransform>();
@@ -291,7 +292,7 @@ fn setup_env(mut commands: Commands) {
             order: 1,
             ..default()
         },
-        RenderLayers::layer(0),
+        RenderLayers::layer(1),
         Transform::from_xyz(0.0, 0.0, 16.0).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
         UICamera,
     ));
@@ -299,10 +300,10 @@ fn setup_env(mut commands: Commands) {
     commands.spawn((
         Camera3d::default(),
         Camera {
-            order: 1,
+            order: 2,
             ..default()
         },
-        RenderLayers::layer(1),
+        RenderLayers::layer(2),
         Transform::from_xyz(offset, offset, 15.0)
             .looking_at(Vec3::new(offset, offset, 0.0), Vec3::Y),
         GameCamera,
