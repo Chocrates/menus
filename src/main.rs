@@ -11,11 +11,11 @@ fn main() {
 
 fn startup(mut commands: Commands) {
     bevy::log::info!("main::startup");
-    commands.spawn(Camera2dBundle {
-        camera: Camera {
+    commands.spawn((
+        Camera2d::default(),
+        Camera {
             order: 0,
             ..default()
         },
-        ..default()
-    });
+    ));
 }

@@ -1,7 +1,6 @@
 use crate::plugins::states_plugin::{despawn_screen, GameState};
 use bevy::prelude::*;
 
-use serde::Deserialize;
 use std::sync::Mutex;
 
 use bevy::{
@@ -14,9 +13,6 @@ use rand::Rng;
 use std::time::Duration;
 
 pub struct MenuPlugin;
-
-#[derive(Component)]
-pub struct Menu;
 
 // Tag component used to tag entities added on the splash screen
 #[derive(Component)]
@@ -38,28 +34,6 @@ struct _Timer {
 }
 
 static _TIMERS: Mutex<Vec<_Timer>> = Mutex::new(Vec::new());
-
-// Data structure for USNO API response
-#[derive(Debug, Deserialize)]
-struct UsnoResponse {
-    results: Results,
-}
-
-#[derive(Debug, Deserialize)]
-struct Results {
-    sunrise: String,
-    sunset: String,
-}
-
-// Component to store fetched sunrise/sunset data
-#[derive(Component)]
-struct SunriseSunsetData {
-    sunrise: String,
-    sunset: String,
-}
-
-#[derive(Component)]
-struct ComputeTask(Task<UsnoResponse>);
 
 const NUM_CUBES: u32 = 6;
 
@@ -89,17 +63,13 @@ fn menu_setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     commands
         .spawn((
-            NodeBundle {
+            Node {
                 // z_index: ZIndex::Global(-1),
-                style: Style {
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
-                    align_items: AlignItems::Center,
-                    flex_direction: FlexDirection::Column,
-                    justify_content: JustifyContent::FlexStart,
-
-                    ..default()
-                },
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
+                justify_content: JustifyContent::FlexStart,
                 ..default()
             },
             RenderLayers::layer(0),
@@ -107,8 +77,8 @@ fn menu_setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         ))
         .with_children(|parent| {
             parent
-                .spawn(NodeBundle {
-                    style: Style {
+                .spawn((
+                    Node {
                         width: Val::Percent(90.0),
                         height: Val::Percent(90.0),
                         align_items: AlignItems::Center,
@@ -117,18 +87,18 @@ fn menu_setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
                         justify_content: JustifyContent::FlexStart,
                         ..default()
                     },
-                    background_color: Color::srgb(1., 1., 1.).into(),
-                    ..default()
-                })
+                    BackgroundColor(Color::srgb(1., 1., 1.).into()),
+                ))
                 .with_children(|parent| {
                     let timers = {
                         let timers_guard = _TIMERS.lock().unwrap();
                         timers_guard.clone()
                     };
-                    for timer in timers {
+                    for _timer in timers {
                         parent
-                            .spawn(ButtonBundle {
-                                style: Style {
+                            .spawn((
+                                Button,
+                                Node {
                                     width: Val::Percent(75.0),
                                     height: Val::Px(65.0),
                                     border: UiRect::all(Val::Px(5.0)),
@@ -138,26 +108,24 @@ fn menu_setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     align_items: AlignItems::Center,
                                     ..default()
                                 },
-                                border_color: BorderColor(Color::BLACK),
-                                border_radius: BorderRadius::MAX,
-                                background_color: NORMAL_BUTTON.into(),
-                                ..default()
-                            })
-                            .with_children(|parent| {
-                                parent.spawn(TextBundle::from_section(
-                                    "Button",
-                                    TextStyle {
-                                        font: asset_server.load("fonts/ShadeBlue-2OozX.ttf"),
-                                        font_size: 40.0,
-                                        color: Color::srgb(0.9, 0.9, 0.9),
-                                    },
-                                ));
-                            });
+                                BorderColor(Color::BLACK),
+                                BorderRadius::MAX,
+                                BackgroundColor(NORMAL_BUTTON.into()),
+                            ))
+                            .with_child((
+                                Text::new("Button"),
+                                TextFont {
+                                    font: asset_server.load("fonts/ShadeBlue-2OozX.ttf"),
+                                    font_size: 40.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                            ));
                     }
                 });
 
-            parent.spawn(NodeBundle {
-                style: Style {
+            parent.spawn((
+                Node {
                     width: Val::Percent(90.0),
                     height: Val::Percent(90.0),
                     align_items: AlignItems::Center,
@@ -166,9 +134,8 @@ fn menu_setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
                     justify_content: JustifyContent::FlexStart,
                     ..default()
                 },
-                background_color: Color::srgb(0.9, 0.9, 0.9).into(),
-                ..default()
-            });
+                BackgroundColor(Color::srgb(0.9, 0.9, 0.9).into()),
+            ));
         });
 }
 
@@ -183,26 +150,24 @@ fn menu_update_system(
         (Changed<Interaction>, With<Button>),
     >,
     mut text_query: Query<&mut Text>,
-    time: Res<Time>,
-    mut game_state: ResMut<NextState<GameState>>,
 ) {
     for (interaction, mut color, mut border_color, children) in &mut interaction_query {
         let mut text = text_query.get_mut(children[0]).unwrap();
         match *interaction {
             Interaction::Pressed => {
-                text.sections[0].value = "Press".to_string();
+                **text = "Press".to_string();
                 *color = PRESSED_BUTTON.into();
                 border_color.0 = Color::srgb(1.0, 0.0, 0.0);
                 bevy::log::info!("Button PRESSED");
             }
             Interaction::Hovered => {
-                text.sections[0].value = "Hover".to_string();
+                **text = "Hover".to_string();
                 *color = HOVERED_BUTTON.into();
                 border_color.0 = Color::WHITE;
                 bevy::log::info!("Button Hovered");
             }
             Interaction::None => {
-                text.sections[0].value = "Button".to_string();
+                **text = "Button".to_string();
                 *color = NORMAL_BUTTON.into();
                 border_color.0 = Color::BLACK;
                 bevy::log::info!("Button Out");
@@ -272,13 +237,9 @@ fn spawn_tasks(mut commands: Commands) {
                             .entity_mut(entity)
                             // Add our new PbrBundle of components to our tagged entity
                             .insert((
-                                PbrBundle {
-                                    mesh: box_mesh_handle,
-                                    material: box_material_handle,
-                                    transform,
-                                    ..default()
-                                },
-                                RenderLayers::layer(1),
+                                Mesh3d(box_mesh_handle),
+                                MeshMaterial3d(box_material_handle),
+                                transform,
                             ))
                             // Task is complete, so remove task component from entity
                             .remove::<ComputeTransform>();
@@ -318,39 +279,32 @@ fn setup_env(mut commands: Commands) {
     };
 
     // lights
-    commands.spawn(PointLightBundle {
-        transform: Transform::from_xyz(4.0, 12.0, 15.0),
-        ..default()
-    });
+    commands.spawn((
+        PointLight { ..default() },
+        Transform::from_xyz(4.0, 12.0, 15.0),
+    ));
 
     // camera
     commands.spawn((
-        Camera2dBundle {
-            // transform: Transform::from_xzy(0.0 as f32, 0.0 as f32, 16.0 as f32)
-            //     .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
-            transform: Transform::from_xyz(0.0, 0.0, 16.0)
-                .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
-            camera: Camera {
-                order: 1,
-                ..default()
-            },
+        Camera2d::default(),
+        Camera {
+            order: 1,
             ..default()
         },
         RenderLayers::layer(0),
+        Transform::from_xyz(0.0, 0.0, 16.0).looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
         UICamera,
     ));
 
     commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_xyz(offset, offset, 15.0)
-                .looking_at(Vec3::new(offset, offset, 0.0), Vec3::Y),
-            camera: Camera {
-                order: 2,
-                ..default()
-            },
+        Camera3d::default(),
+        Camera {
+            order: 1,
             ..default()
         },
         RenderLayers::layer(1),
+        Transform::from_xyz(offset, offset, 15.0)
+            .looking_at(Vec3::new(offset, offset, 0.0), Vec3::Y),
         GameCamera,
     ));
 }
