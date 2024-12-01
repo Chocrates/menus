@@ -1,7 +1,19 @@
 use crate::plugins::states_plugin::{despawn_screen, GameState};
 use bevy::prelude::*;
+use tokio::runtime::Runtime;
 
 use std::sync::Mutex;
+use std::{
+    f32::consts::PI,
+    ops::Drop,
+    sync::{
+        atomic::{AtomicBool, AtomicU32, Ordering},
+        Arc,
+    },
+};
+
+use event_listener::Event;
+use futures_lite::Future;
 
 use bevy::{
     ecs::{system::SystemState, world::CommandQueue},
@@ -10,6 +22,8 @@ use bevy::{
 };
 
 use rand::Rng;
+use reqwest::Error;
+use serde::Deserialize;
 use std::time::Duration;
 
 pub struct MenuPlugin;
@@ -47,9 +61,18 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             OnEnter(GameState::Menu),
-            (menu_setup_system, setup_env, add_assets, spawn_tasks),
+            (
+                menu_setup_system,
+                setup_env,
+                add_assets,
+                spawn_tasks,
+                query_weather,
+            ),
         )
-        .add_systems(Update, (menu_update_system, handle_tasks))
+        .add_systems(
+            Update,
+            (menu_update_system, handle_tasks, handle_query_weather),
+        )
         .add_systems(OnExit(GameState::Menu), despawn_screen::<OnMenuScreen>);
     }
 }
@@ -190,6 +213,60 @@ fn add_assets(
 
     let box_material_handle = materials.add(Color::srgb(1.0, 0.2, 0.3));
     commands.insert_resource(BoxMaterialHandle(box_material_handle));
+}
+
+#[derive(Component)]
+struct FetchTask(Task<Result<Post, Error>>);
+
+#[derive(Deserialize, Debug)]
+struct Post {
+    userId: u32,
+    id: u32,
+    title: String,
+    body: String,
+}
+
+fn query_weather(mut commands: Commands, query: Query<Entity, With<FetchTask>>) {
+    // Ensure we don't spawn multiple tasks
+    if query.iter().next().is_some() {
+        return;
+    }
+
+    // Get the async compute task pool
+    let task_pool = AsyncComputeTaskPool::get();
+
+    let task = task_pool.spawn(async move {
+        // Create a Tokio runtime for this task
+        let runtime = Runtime::new().unwrap();
+        runtime.block_on(async {
+            let url = "https://jsonplaceholder.typicode.com/posts/1";
+            let response = reqwest::get(url).await?;
+            let post = response.json::<Post>().await?;
+            Ok(post)
+        })
+    });
+
+    // Add the task as a component to an entity
+    commands.spawn(FetchTask(task));
+}
+
+fn handle_query_weather(mut commands: Commands, mut query: Query<(Entity, &mut FetchTask)>) {
+    for (entity, mut task) in query.iter_mut() {
+        // Check if the task is complete
+        if let Some(result) = future::block_on(futures_lite::future::poll_once(&mut task.0)) {
+            match result {
+                Ok(post) => {
+                    bevy::log::info!("Fetched Post: {:?}", post);
+                }
+                Err(err) => {
+                    bevy::log::error!("Error fetching post: {:?}", err);
+                }
+            }
+
+            // Despawn the entity after processing the task
+            commands.entity(entity).despawn();
+        }
+    }
 }
 
 #[derive(Component)]
